@@ -66,6 +66,7 @@ var_info vtab_battwatts[] = {
 	{ SSC_INPUT,        SSC_NUMBER,      "batt_simple_kw",                    "Battery Power",                          "kW",      "",                 "battwatts",                  "?=0",                        "",                              "" },
 	{ SSC_INPUT,        SSC_NUMBER,      "batt_simple_chemistry",             "Battery Chemistry",                      "0=lead acid/1=Li-ion/2",   "",                 "battwatts",                  "?=0",                        "",                              "" },
 	{ SSC_INPUT,        SSC_NUMBER,      "batt_simple_dispatch",              "Battery Dispatch",                       "0=peak shaving look ahead/1=peak shaving look behind",     "",                 "battwatts",                  "?=0",                        "",                              "" },
+	{ SSC_INPUT,        SSC_NUMBER,      "batt_simple_enable_charge_from_grid", "Enable charge from Grid?",          							"0/1",     "",                 "battwatts",                  "?=0",                        "",                              "" },
 	{ SSC_INPUT,        SSC_NUMBER,      "batt_simple_meter_position",        "Battery Meter Position",                 "0=behind meter/1=front of meter",     "",                 "battwatts",                  "?=0",                        "",                              "" },
 	{ SSC_INPUT,        SSC_ARRAY,       "dc",								  "DC array power",                         "W",       "",                 "",                           "",                           "",                              "" },
 	{ SSC_INPUT,        SSC_ARRAY,       "ac",								  "AC inverter power",                      "W",       "",                 "",                           "",                           "",                              "" },
@@ -252,9 +253,10 @@ public:
 
 		// Storage dispatch controllers
 		int dispatch = as_integer("batt_simple_dispatch");
+		int enable_charge_from_grid = as_integer("batt_simple_enable_charge_from_grid");
 		batt_vars->batt_dispatch = (dispatch == 0 ? dispatch_t::LOOK_AHEAD : dispatch_t::LOOK_BEHIND);
 		batt_vars->batt_dispatch_auto_can_charge = true;
-		batt_vars->batt_dispatch_auto_can_gridcharge = true;
+		batt_vars->batt_dispatch_auto_can_gridcharge = (enable_charge_from_grid == 1 ? true : false);
 
 		// Battery bank replacement
 		batt_vars->batt_replacement_capacity = 0.;
