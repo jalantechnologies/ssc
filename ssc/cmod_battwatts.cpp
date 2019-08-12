@@ -254,9 +254,24 @@ public:
 		// Storage dispatch controllers
 		int dispatch = as_integer("batt_simple_dispatch");
 		int enable_charge_from_grid = as_integer("batt_simple_enable_charge_from_grid");
-		batt_vars->batt_dispatch = (dispatch == 0 ? dispatch_t::LOOK_AHEAD : dispatch_t::LOOK_BEHIND);
+		if(dispatch == 0) {
+				batt_vars->batt_dispatch = dispatch_t::LOOK_AHEAD;
+		} else if(dispatch == 4) {
+				batt_vars->batt_dispatch = dispatch_t::MANUAL;
+		} else {
+				batt_vars->batt_dispatch = dispatch_t::LOOK_BEHIND;
+		}
 		batt_vars->batt_dispatch_auto_can_charge = true;
 		batt_vars->batt_dispatch_auto_can_gridcharge = (enable_charge_from_grid == 1 ? true : false);
+		batt_vars->batt_can_charge = as_vector_bool("dispatch_manual_charge");
+		batt_vars->batt_can_discharge = as_vector_bool("dispatch_manual_discharge");
+		batt_vars->batt_can_gridcharge = as_vector_bool("dispatch_manual_gridcharge");
+
+		batt_vars->batt_discharge_percent = as_vector_double("dispatch_manual_percent_discharge");
+		batt_vars->batt_gridcharge_percent = as_vector_double("dispatch_manual_percent_gridcharge");
+
+		batt_vars->batt_discharge_schedule_weekday = as_matrix_unsigned_long("dispatch_manual_sched");
+		batt_vars->batt_discharge_schedule_weekend = as_matrix_unsigned_long("dispatch_manual_sched_weekend");
 
 		// Battery bank replacement
 		batt_vars->batt_replacement_capacity = 0.;
