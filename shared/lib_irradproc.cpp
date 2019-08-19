@@ -1,51 +1,24 @@
-/*******************************************************************************************************
-*  Copyright 2017 Alliance for Sustainable Energy, LLC
-*
-*  NOTICE: This software was developed at least in part by Alliance for Sustainable Energy, LLC
-*  (“Alliance”) under Contract No. DE-AC36-08GO28308 with the U.S. Department of Energy and the U.S.
-*  The Government retains for itself and others acting on its behalf a nonexclusive, paid-up,
-*  irrevocable worldwide license in the software to reproduce, prepare derivative works, distribute
-*  copies to the public, perform publicly and display publicly, and to permit others to do so.
-*
-*  Redistribution and use in source and binary forms, with or without modification, are permitted
-*  provided that the following conditions are met:
-*
-*  1. Redistributions of source code must retain the above copyright notice, the above government
-*  rights notice, this list of conditions and the following disclaimer.
-*
-*  2. Redistributions in binary form must reproduce the above copyright notice, the above government
-*  rights notice, this list of conditions and the following disclaimer in the documentation and/or
-*  other materials provided with the distribution.
-*
-*  3. The entire corresponding source code of any redistribution, with or without modification, by a
-*  research entity, including but not limited to any contracting manager/operator of a United States
-*  National Laboratory, any institution of higher learning, and any non-profit organization, must be
-*  made publicly available under this license for as long as the redistribution is made available by
-*  the research entity.
-*
-*  4. Redistribution of this software, without modification, must refer to the software by the same
-*  designation. Redistribution of a modified version of this software (i) may not refer to the modified
-*  version by the same designation, or by any confusingly similar designation, and (ii) must refer to
-*  the underlying software originally provided by Alliance as “System Advisor Model” or “SAM”. Except
-*  to comply with the foregoing, the terms “System Advisor Model”, “SAM”, or any confusingly similar
-*  designation may not be used to refer to any modified version of this software or any modified
-*  version of the underlying software originally provided by Alliance without the prior written consent
-*  of Alliance.
-*
-*  5. The name of the copyright holder, contributors, the United States Government, the United States
-*  Department of Energy, or any of their employees may not be used to endorse or promote products
-*  derived from this software without specific prior written permission.
-*
-*  THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS" AND ANY EXPRESS OR
-*  IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY AND
-*  FITNESS FOR A PARTICULAR PURPOSE ARE DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT HOLDER,
-*  CONTRIBUTORS, UNITED STATES GOVERNMENT OR UNITED STATES DEPARTMENT OF ENERGY, NOR ANY OF THEIR
-*  EMPLOYEES, BE LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL
-*  DAMAGES (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS OF USE,
-*  DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER
-*  IN CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF
-*  THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
-*******************************************************************************************************/
+/**
+BSD-3-Clause
+Copyright 2019 Alliance for Sustainable Energy, LLC
+Redistribution and use in source and binary forms, with or without modification, are permitted provided 
+that the following conditions are met :
+1.	Redistributions of source code must retain the above copyright notice, this list of conditions 
+and the following disclaimer.
+2.	Redistributions in binary form must reproduce the above copyright notice, this list of conditions 
+and the following disclaimer in the documentation and/or other materials provided with the distribution.
+3.	Neither the name of the copyright holder nor the names of its contributors may be used to endorse 
+or promote products derived from this software without specific prior written permission.
+
+THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS" AND ANY EXPRESS OR IMPLIED WARRANTIES, 
+INCLUDING, BUT NOT LIMITED TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE 
+ARE DISCLAIMED.IN NO EVENT SHALL THE COPYRIGHT HOLDER, CONTRIBUTORS, UNITED STATES GOVERNMENT OR UNITED STATES 
+DEPARTMENT OF ENERGY, NOR ANY OF THEIR EMPLOYEES, BE LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, 
+OR CONSEQUENTIAL DAMAGES(INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; 
+LOSS OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY OF LIABILITY, 
+WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT(INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT 
+OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
+*/
 
 #include <iomanip>
 #include <iostream>
@@ -219,30 +192,37 @@ void solarpos(int year,int month,int day,int hour,double minute,double lat,doubl
 		E = E - 24.0;
 
 	arg = -tan(lat)*tan(dec);
-	if (arg >= 1.0)  /* No sunrise, continuous nights */
+	if (arg >= 1.0)  // No sunrise, continuous nights
 	{
 		ws = 0.0;                        
-		sunrise = 24;
-		sunset = 0;
+		sunrise = 100.0; //make sunrise and sunset sufficiently large that even if they get rolled by 24 hours, they're still out of the bounds 0-24
+		sunset = -100.0;
 	}
-	else if (arg <= -1.0) /* No sunset, continuous days */
+	else if (arg <= -1.0) // No sunset, continuous days
 	{
 		ws = M_PI;                          
-		sunrise = 0;
-		sunset = 24;
+		sunrise = -100.0; //make sunrise and sunset sufficiently large that even if they get rolled by 24 hours, they're still out of the bounds 0-24
+		sunset = 100.0;
 	}
 	else
 	{
-		ws = acos(arg); /* Sunrise hour angle in radians */
-		/* Sunrise and sunset in local standard time */
+		ws = acos(arg); // Sunrise hour angle in radians
+		// Sunrise and sunset in local standard time
 		sunrise = 12.0 - (ws / DTOR) / 15.0 - (lng / 15.0 - tz) - E; //sunrise in units of hours (e.g. 5.25 = 5:15 am)
 		sunset = 12.0 + (ws / DTOR) / 15.0 - (lng / 15.0 - tz) - E; //sunset in units of hours (e.g. 18.75 = 6:45 pm)
-		//if time zone and longitude are opposite signs (happens near international dateline and greenwich meridian), then sometimes sunrise/sunset will be off by 24 hrs
-		//add catches to check for that and correct it if so
-		if (sunrise > 24) sunrise -= 24;
-		else if (sunrise < 0) sunrise += 24;
-		if (sunset > 24) sunset -= 24;
-		else if (sunset < 0) sunset += 24;
+		//now a bunch of error checks to try to correctly catch weird behavior
+		//both sunrise and sunset may be shifted by 24 hours (example: Fiji- positive tz negative lng), if so, roll them both back
+		if (sunrise > 24.0 && sunset > 24.0)
+		{
+			sunrise -= 24.0;
+			sunset -= 24.0;
+		}
+		//no examples of the opposing case, but let's catch it anyways, just in case
+		if (sunrise < 0.0 && sunset < 0.0)
+		{
+			sunrise += 24.0;
+			sunset += 24.0;
+		}
 	}
 
 	Eo = 1.00014 - 0.01671*cos(mnanom) - 0.00014*cos(2.0*mnanom);  /* Earth-sun distance (AU) */
@@ -993,30 +973,30 @@ void irrad::get_irrad (double *ghi, double *dni, double *dhi){
 	*dhi = diffuseHorizontal;
 }
 
-void irrad::set_time( int year, int month, int day, int hour, double minute, double delt_hr )
+void irrad::set_time( int y, int m, int d, int h, double min, double delt_hr )
 {
-	this->year = year;
-	this->month = month;
-	this->day = day;
-	this->hour = hour;
-	this->minute = minute;
+	this->year = y;
+	this->month = m;
+	this->day = d;
+	this->hour = h;
+	this->minute = min;
 	this->delt = delt_hr;
 }
 
-void irrad::set_location( double latitudeDegrees, double longitudeDegrees, double timezone )
+void irrad::set_location( double latDegrees, double longDegrees, double tz )
 {
-	this->latitudeDegrees = latitudeDegrees;
-	this->longitudeDegrees = longitudeDegrees;
-	this->timezone = timezone;
+	this->latitudeDegrees = latDegrees;
+	this->longitudeDegrees = longDegrees;
+	this->timezone = tz;
 }
 
-void irrad::set_sky_model( int skyModel, double albedo )
+void irrad::set_sky_model( int sm, double alb )
 {
-	this->skyModel = skyModel;
-	this->albedo = albedo;
+	this->skyModel = sm;
+	this->albedo = alb;
 }
 
-void irrad::set_surface( int tracking, double tilt_deg, double azimuth_deg, double rotlim_deg, bool enableBacktrack, double groundCoverageRatio )
+void irrad::set_surface( int tracking, double tilt_deg, double azimuth_deg, double rotlim_deg, bool enBacktrack, double gcr )
 {
 	this->trackingMode = tracking;
 	if (tracking == 4)
@@ -1024,8 +1004,8 @@ void irrad::set_surface( int tracking, double tilt_deg, double azimuth_deg, doub
 	this->tiltDegrees = tilt_deg;
 	this->surfaceAzimuthDegrees = azimuth_deg;
 	this->rotationLimitDegrees = rotlim_deg;
-	this->enableBacktrack = enableBacktrack;
-	this->groundCoverageRatio = groundCoverageRatio;
+	this->enableBacktrack = enBacktrack;
+	this->groundCoverageRatio = gcr;
 }
 	
 void irrad::set_beam_diffuse( double beam, double diffuse )
@@ -1049,13 +1029,13 @@ void irrad::set_global_diffuse(double global, double diffuse)
 	this->radiationMode = irrad::GH_DF;
 }
 
-void irrad::set_poa_reference( double planeOfArrayIrradianceFront, poaDecompReq* pA){
-	this->weatherFilePOA = planeOfArrayIrradianceFront;
+void irrad::set_poa_reference( double poaIrradianceFront, poaDecompReq* pA){
+	this->weatherFilePOA = poaIrradianceFront;
 	this->radiationMode = irrad::POA_R;
 	this->poaAll = pA;
 }
-void irrad::set_poa_pyranometer( double planeOfArrayIrradianceFront, poaDecompReq* pA ){
-	this->weatherFilePOA = planeOfArrayIrradianceFront;
+void irrad::set_poa_pyranometer( double poaIrradianceFront, poaDecompReq* pA ){
+	this->weatherFilePOA = poaIrradianceFront;
 	this->radiationMode = irrad::POA_P;
 	this->poaAll = pA;
 }
@@ -1090,12 +1070,44 @@ int irrad::calc()
 	double t_sunrise = sunAnglesRadians[4];
 	double t_sunset = sunAnglesRadians[5];
 
-	// recall: if delt <= 0.0, do not interpolate sunrise and sunset hours, just use specified time stamp
-	if ( delt > 0
-		&& t_cur >= t_sunrise - delt/2.0
-		&& t_cur < t_sunrise + delt/2.0 )
+	if (t_sunset > 24.0 && t_sunset != 100.0) //sunset is legitimately the next day but we're not in endless days, so recalculate sunset from the previous day
 	{
-		// time step encompasses the sunrise
+		double sunanglestemp[9];
+		if (day > 1) //simply decrement day during month
+			solarpos(year, month, day - 1, 12, 0.0, latitudeDegrees, longitudeDegrees, timezone, sunanglestemp);
+		else if (month > 1) //on the 1st of the month, need to switch to the last day of previous month
+			solarpos(year, month - 1, __nday[month - 2], 12, 0.0, latitudeDegrees, longitudeDegrees, timezone, sunanglestemp); //month is 1-indexed and __nday is 0 indexed
+		else //on the first day of the year, need to switch to Dec 31 of last year
+			solarpos(year - 1, 12, 31, 12, 0.0, latitudeDegrees, longitudeDegrees, timezone, sunanglestemp);
+		//on the last day of endless days, sunset is returned as 100 (hour angle too large for calculation), so use today's sunset time as a proxy
+		if (sunanglestemp[5] == 100.0)
+			t_sunset -= 24.0;		
+		//if sunset from yesterday WASN'T today, then it's ok to leave sunset > 24, which will cause the sun to rise today and not set today
+		else if (sunanglestemp[5] >= 24.0)
+			t_sunset = sunanglestemp[5] - 24.0;
+	}
+
+	if (t_sunrise < 0.0 && t_sunrise != -100.0) //sunrise is legitimately the previous day but we're not in endless days, so recalculate for next day
+	{
+		double sunanglestemp[9];
+		if (day < __nday[month - 1]) //simply increment the day during the month, month is 1-indexed and __nday is 0-indexed
+			solarpos(year, month, day + 1, 12, 0.0, latitudeDegrees, longitudeDegrees, timezone, sunanglestemp);
+		else if (month < 12) //on the last day of the month, need to switch to the first day of the next month
+			solarpos(year, month + 1, 1, 12, 0.0, latitudeDegrees, longitudeDegrees, timezone, sunanglestemp);
+		else //on the last day of the year, need to switch to Jan 1 of the next year
+			solarpos(year + 1, 1, 1, 12, 0.0, latitudeDegrees, longitudeDegrees, timezone, sunanglestemp);
+		//on the last day of endless days, sunrise would be returned as -100 (hour angle too large for calculations), so use today's sunrise time as a proxy
+		if (sunanglestemp[4] == -100.0)
+			t_sunrise += 24.0;		
+		//if sunrise from tomorrow isn't today, then it's ok to leave sunrise < 0, which will cause the sun to set at the right time and not rise until tomorrow
+		else if (sunanglestemp[4] < 0.0)
+			t_sunrise = sunanglestemp[4] + 24.0;
+	}
+
+	// recall: if delt <= 0.0, do not interpolate sunrise and sunset hours, just use specified time stamp
+	// time step encompasses the sunrise
+	if ( delt > 0 && t_cur >= t_sunrise - delt/2.0 && t_cur < t_sunrise + delt/2.0 )
+	{
 		double t_calc = (t_sunrise + (t_cur+delt/2.0))/2.0; // midpoint of sunrise and end of timestep
 		int hr_calc = (int)t_calc;
 		double min_calc = (t_calc-hr_calc)*60.0;
@@ -1107,11 +1119,9 @@ int irrad::calc()
 
 		timeStepSunPosition[2] = 2;				
 	}
-	else if ( delt > 0
-		&& t_cur > t_sunset - delt/2.0
-		&& t_cur <= t_sunset + delt/2.0 )
+	// timestep encompasses the sunset
+	else if ( delt > 0 && t_cur > t_sunset - delt/2.0 && t_cur <= t_sunset + delt/2.0 )
 	{
-		// timestep encompasses the sunset
 		double t_calc = ( (t_cur-delt/2.0) + t_sunset )/2.0; // midpoint of beginning of timestep and sunset
 		int hr_calc = (int)t_calc;
 		double min_calc = (t_calc-hr_calc)*60.0;
@@ -1123,9 +1133,10 @@ int irrad::calc()
 
 		timeStepSunPosition[2] = 3;
 	}
-	else if (t_cur >= t_sunrise && t_cur <= t_sunset)
-	{
-		// timestep is not sunrise nor sunset, but sun is up  (calculate position at provided t_cur)			
+	// timestep is not sunrise nor sunset, but sun is up  (calculate position at provided t_cur)
+	else if ( (t_sunrise < t_sunset && t_cur >= t_sunrise && t_cur <= t_sunset) || //this captures normal daylight cases
+		(t_sunrise > t_sunset && (t_cur <= t_sunset || t_cur >= t_sunrise)) ) //this captures cases where sunset (from previous day) is 1:30AM, sunrise 2:30AM, in arctic circle
+	{				
 		timeStepSunPosition[0] = hour;
 		timeStepSunPosition[1] = (int)minute;
 		solarpos( year, month, day, hour, minute, latitudeDegrees, longitudeDegrees, timezone, sunAnglesRadians );
@@ -1134,11 +1145,9 @@ int irrad::calc()
 	else
 	{	
 		// sun is down, assign sundown values
-		sunAnglesRadians[0] = -999*DTOR; //avoid returning a junk azimuth angle (return in radians)
-		sunAnglesRadians[1] = -999*DTOR; //avoid returning a junk zenith angle (return in radians)
-		sunAnglesRadians[2] = -999*DTOR; //avoid returning a junk elevation angle (return in radians)
-		timeStepSunPosition[0] = 0;
-		timeStepSunPosition[1] = 0;
+		solarpos(year, month, day, hour, minute, latitudeDegrees, longitudeDegrees, timezone, sunAnglesRadians);
+		timeStepSunPosition[0] = hour;
+		timeStepSunPosition[1] = (int)minute;
 		timeStepSunPosition[2] = 0;
 	}
 
@@ -1214,7 +1223,7 @@ int irrad::calc()
 
 }
 
-int irrad::calc_rear_side(double transmissionFactor, double bifaciality, double groundClearanceHeight, double slopeLength)
+int irrad::calc_rear_side(double transmissionFactor, double groundClearanceHeight, double slopeLength)
 {
 	// do irradiance calculations if sun is up
 	if (timeStepSunPosition[2] > 0)
@@ -1257,7 +1266,7 @@ int irrad::calc_rear_side(double transmissionFactor, double bifaciality, double 
 		std::vector<double> rearIrradiancePerCellrow;
 		double rearAverageIrradiance = 0;
 		getBackSurfaceIrradiances(pvBackShadeFraction, rowToRow, verticalHeight, clearanceGround, distanceBetweenRows, horizontalLength, rearGroundGHI, frontGroundGHI, frontReflected, rearIrradiancePerCellrow, rearAverageIrradiance);
-		planeOfArrayIrradianceRearAverage = rearAverageIrradiance * bifaciality;
+		planeOfArrayIrradianceRearAverage = rearAverageIrradiance;
 	}
 	return true;
 }
@@ -1643,7 +1652,7 @@ void irrad::getFrontSurfaceIrradiances(double pvFrontShadeFraction, double rowTo
 	}
 }
 
-void irrad::getBackSurfaceIrradiances(double pvBackShadeFraction, double rowToRow, double verticalHeight, double clearanceGround, double distanceBetweenRows, double horizontalLength, std::vector<double> rearGroundGHI, std::vector<double> frontGroundGHI, std::vector<double> frontReflected, std::vector<double> & rearIrradiance, double & rearAverageIrradiance)
+void irrad::getBackSurfaceIrradiances(double pvBackShadeFraction, double rowToRow, double verticalHeight, double clearanceGround, double , double horizontalLength, std::vector<double> rearGroundGHI, std::vector<double> frontGroundGHI, std::vector<double> frontReflected, std::vector<double> & rearIrradiance, double & rearAverageIrradiance)
 {
 	// front surface assumed to be glass
 	double n2 = 1.526;
@@ -1664,9 +1673,9 @@ void irrad::getBackSurfaceIrradiances(double pvBackShadeFraction, double rowToRo
 	double isotropicSkyDiffuse = diffuseIrradianceRear[0];
 
 	// Calculate components for a 90 degree tilt 
-	double surfaceAnglesRadians[5] = { 0,0,0,0,0 };
-	incidence(0, 90.0, 180.0, 45.0, solarZenithRadians, solarAzimuthRadians, this->enableBacktrack, this->groundCoverageRatio, surfaceAnglesRadians);
-	perez(0, calculatedDirectNormal, calculatedDiffuseHorizontal, albedo, surfaceAnglesRadians[0], surfaceAnglesRadians[1], solarZenithRadians, planeOfArrayIrradianceRear, diffuseIrradianceRear);
+	double surfaceAnglesRadians90[5] = { 0,0,0,0,0 };
+	incidence(0, 90.0, 180.0, 45.0, solarZenithRadians, solarAzimuthRadians, this->enableBacktrack, this->groundCoverageRatio, surfaceAnglesRadians90);
+	perez(0, calculatedDirectNormal, calculatedDiffuseHorizontal, albedo, surfaceAnglesRadians90[0], surfaceAnglesRadians90[1], solarZenithRadians, planeOfArrayIrradianceRear, diffuseIrradianceRear);
 	double horizonDiffuse = diffuseIrradianceRear[2];
 
 	// Calculate x,y coordinates of bottom and top edges of PV row in back of desired PV row so that portions of sky and ground viewed by the 
