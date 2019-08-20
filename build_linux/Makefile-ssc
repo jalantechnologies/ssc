@@ -3,8 +3,8 @@ VPATH=../ssc
 CC = gcc
 CXX = g++
 WARNINGS =
-CFLAGS = -I../shared -I../nlopt -I../solarpilot -I../tcs -I../ssc -I../lpsolve -I../splinter -g -D__UNIX__ -fPIC $(WARNINGS) -O3
-LDFLAGS = -std=c++0x solarpilot.a tcs.a nlopt.a shared.a lpsolve.a splinter.a -lm -lstdc++
+CFLAGS = -I../shared -I../nlopt -I../solarpilot -I../tcs -I../ssc -I../lpsolve -I../splinter -g -D__UNIX__ -fno-var-tracking-assignments -fPIC $(WARNINGS) -O3
+LDFLAGS = -std=c++0x solarpilot.a tcs.a nlopt.a shared.a lpsolve.a splinter.a -lm -ldl -lstdc++
 CXXFLAGS=-std=c++0x $(CFLAGS)
 
 CFLAGS += -D__64BIT__
@@ -107,7 +107,7 @@ OBJECTS = \
 $(TARGET) : $(OBJECTS)
 # Following give undefined symbols tcskernel and ssc.co fails to load
 #	$(CXX) $(LDFLAGS) -shared -o $@ $^ 
-	$(CXX) -shared -o $@ $^ $(LDFLAGS)
+	$(CXX) -shared -o $@ $^ $(LDFLAGS) -Wl,-z,defs
 	gcc $(CFLAGS) dltest.c -o dltest -Wl,--no-as-needed -ldl
 	./dltest ./$(TARGET)
 
