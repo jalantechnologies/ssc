@@ -218,8 +218,8 @@ public:
 
 		// Charge limits and priority
 		batt_vars->batt_initial_SOC = 50.;
-		batt_vars->batt_maximum_SOC = 95.;
-		batt_vars->batt_minimum_SOC = 15.;
+		batt_vars->batt_maximum_SOC = 100.;
+		batt_vars->batt_minimum_SOC = 0.;
 		batt_vars->batt_minimum_modetime = 10;
 
 		// Storage dispatch controllers
