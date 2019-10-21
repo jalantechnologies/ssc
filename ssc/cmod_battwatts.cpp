@@ -41,6 +41,7 @@ var_info vtab_battwatts[] = {
 	{ SSC_INPUT,        SSC_NUMBER,      "batt_simple_kw",                    "Battery Power",                          "kW",      "",                 "battwatts",                  "?=0",                        "",                              "" },
 	{ SSC_INPUT,        SSC_NUMBER,      "batt_simple_chemistry",             "Battery Chemistry",                      "0=lead acid/1=Li-ion/2",   "",                 "battwatts",                  "?=0",                        "",                              "" },
 	{ SSC_INPUT,        SSC_NUMBER,      "batt_simple_dispatch",              "Battery Dispatch",                       "0=peak shaving look ahead/1=peak shaving look behind",     "",                 "battwatts",                  "?=0",                        "",                              "" },
+	{ SSC_INPUT,        SSC_NUMBER,      "batt_simple_enable_charge_from_grid", "Enable charge from Grid?",          							"0/1",     "",                 "battwatts",                  "?=0",                        "",                              "" },
 	{ SSC_INPUT,        SSC_NUMBER,      "batt_simple_meter_position",        "Battery Meter Position",                 "0=behind meter/1=front of meter",     "",                 "battwatts",                  "?=0",                        "",                              "" },
 	{ SSC_INPUT,        SSC_ARRAY,       "dc",								  "DC array power",                         "W",       "",                 "",                           "",                           "",                              "" },
 	{ SSC_INPUT,        SSC_ARRAY,       "ac",								  "AC inverter power",                      "W",       "",                 "",                           "",                           "",                              "" },
@@ -217,15 +218,31 @@ public:
 
 		// Charge limits and priority
 		batt_vars->batt_initial_SOC = 50.;
-		batt_vars->batt_maximum_SOC = 95.;
-		batt_vars->batt_minimum_SOC = 15.;
+		batt_vars->batt_maximum_SOC = 100.;
+		batt_vars->batt_minimum_SOC = 0.;
 		batt_vars->batt_minimum_modetime = 10;
 
 		// Storage dispatch controllers
 		int dispatch = as_integer("batt_simple_dispatch");
-		batt_vars->batt_dispatch = (dispatch == 0 ? dispatch_t::LOOK_AHEAD : dispatch_t::LOOK_BEHIND);
+		int enable_charge_from_grid = as_integer("batt_simple_enable_charge_from_grid");
+		if(dispatch == 0) {
+				batt_vars->batt_dispatch = dispatch_t::LOOK_AHEAD;
+		} else if(dispatch == 4) {
+				batt_vars->batt_dispatch = dispatch_t::MANUAL;
+		} else {
+				batt_vars->batt_dispatch = dispatch_t::LOOK_BEHIND;
+		}
 		batt_vars->batt_dispatch_auto_can_charge = true;
-		batt_vars->batt_dispatch_auto_can_gridcharge = true;
+		batt_vars->batt_dispatch_auto_can_gridcharge = (enable_charge_from_grid == 1 ? true : false);
+		batt_vars->batt_can_charge = as_vector_bool("dispatch_manual_charge");
+		batt_vars->batt_can_discharge = as_vector_bool("dispatch_manual_discharge");
+		batt_vars->batt_can_gridcharge = as_vector_bool("dispatch_manual_gridcharge");
+
+		batt_vars->batt_discharge_percent = as_vector_double("dispatch_manual_percent_discharge");
+		batt_vars->batt_gridcharge_percent = as_vector_double("dispatch_manual_percent_gridcharge");
+
+		batt_vars->batt_discharge_schedule_weekday = as_matrix_unsigned_long("dispatch_manual_sched");
+		batt_vars->batt_discharge_schedule_weekend = as_matrix_unsigned_long("dispatch_manual_sched_weekend");
 
 		// Battery bank replacement
 		batt_vars->batt_replacement_capacity = 0.;

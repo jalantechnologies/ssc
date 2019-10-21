@@ -75,7 +75,7 @@ static const double PI = 3.1415926535897932; // pi
 double amavec[5] = { 0.918093, 0.086257, -0.024459, 0.002816, -0.000126 }; // DeSoto IAM coefficients [3]
 
 // 1: NOCT, 2: Extended Faiman
-static const int T_MODE_NOCT = 1;
+// static const int T_MODE_NOCT = 1;
 static const int T_MODE_FAIMAN = 2;
 
 // 1: Use ASHRAE formula, 2: Use Sandia polynomial, 3: Use cubic spline with user-supplied data
